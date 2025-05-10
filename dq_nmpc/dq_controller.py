@@ -57,22 +57,6 @@ def solver(params):
     R[2] = R[2]/tau_2_max
     R[3] = R[3]/tau_3_max
 
-    # Generate matrices 
-    #Q_primal = MX.zeros(3, 3)
-    #Q_primal_scalar = Q[7]
-    #Q_dual = MX.zeros(3, 3)
-    #Q_dual_scalar = Q[0]
-
-    ## First section related to quaternion
-    #Q_primal[0, 0] = Q[8]
-    #Q_primal[1, 1] = Q[9]
-    #Q_primal[2, 2] = Q[10]
-    #
-    ## Second section related to translation
-    #Q_dual[0, 0] = Q[1]
-    #Q_dual[1, 1] = Q[2]
-    #Q_dual[2, 2] = Q[3]
-
     Q_dual = MX.zeros(8, 8)
     Q_dual[0, 0] = Q[7]
     Q_dual[1, 1] = Q[8]

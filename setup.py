@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+from glob import glob
+import os
 
 package_name = 'dq_nmpc'
 
@@ -10,6 +12,9 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'config', 'mujoco', 'default'),
+            glob('config/mujoco/default/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,7 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "dq_nmpc = dq_nmpc.main_dq_nmpc:main"
+            "dq_nmpc = dq_nmpc.main_dq_nmpc:main",
+            "planner = dq_nmpc.main_planner:main"
         ],
     },
 )

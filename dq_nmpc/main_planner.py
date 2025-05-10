@@ -2,34 +2,20 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-#import matplotlib.pyplot as plt
 import casadi as ca
-
-import threading
 
 # Libraries of dual-quaternions
 from dq_nmpc import dualquat_from_pose_casadi
 from dq_nmpc import dualquat_trans_casadi, dualquat_quat_casadi, rotation_casadi, rotation_inverse_casadi, dual_velocity_casadi, velocities_from_twist_casadi
-from ode_acados import compute_flatness_states
 from dq_nmpc import error_dual_aux_casadi
-
-from acados_template import AcadosOcpSolver
-
-from ament_index_python.packages import get_package_share_path
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
-from visualization_msgs.msg import Marker
-from quadrotor_msgs.msg import TRPYCommand
+from geometry_msgs.msg import Point, Vector3, Quaternion
 from quadrotor_msgs.msg import PositionCommand
 from quadrotor_msgs.msg import TrajectoryPoint
-from geometry_msgs.msg import Point, Vector3, Quaternion
-from mujoco_msgs.msg import Dual
 import time
-import os
-import sys
-import utils
-from dq_controller import solver
+from dq_nmpc import compute_flatness_states
 
 # Function to create a dualquaternion, get quaernion and translatation and returns a dualquaternion
 dualquat_from_pose = dualquat_from_pose_casadi()
@@ -55,9 +41,93 @@ inverse_rot = rotation_inverse_casadi()
 # Function to check for the shorthest path
 error_dual_f = error_dual_aux_casadi()
 
-class DQnmpcNode(Node):
-    def __init__(self, params):
-        super().__init__('DQNMPC_FINAL')
+class PlannerNode(Node):
+    def __init__(self):
+        super().__init__('Planner')
+        # Lets define internal variables
+        self.declare_parameter('mass', 1.0)
+        self.declare_parameter('gravity', 9.8)
+        self.declare_parameter('ixx', 0.00305587)
+        self.declare_parameter('iyy', 0.00159695)
+        self.declare_parameter('izz', 0.00159687)
+        self.declare_parameter('mav_name', 'quadrotor')
+
+        # System gains
+        self.declare_parameter('nmpc.Q', [0.0]*14)
+        self.declare_parameter('nmpc.Q_e', [0.0]*14)
+        self.declare_parameter('nmpc.R', [0.0]*4)
+        self.declare_parameter('nmpc.horizon_steps', 0)
+        self.declare_parameter('nmpc.horizon_time', 0.0)
+        self.declare_parameter('nmpc.ts', 0.0)
+        self.declare_parameter('nmpc.ubu', [0.0]*4)
+        self.declare_parameter('nmpc.lbu', [0.0]*4)
+        self.declare_parameter('nmpc.nx', 0)
+        self.declare_parameter('nmpc.nu', 0)
+
+
+        # Access parameters
+        self.mass = self.get_parameter('mass').value
+        self.gravity = self.get_parameter('gravity').value
+        self.ixx = self.get_parameter('ixx').value
+        self.iyy = self.get_parameter('iyy').value
+        self.izz = self.get_parameter('izz').value
+
+        nmpc_params = self.get_parameters_by_prefix('nmpc')
+        self.Q = nmpc_params['Q'].value
+        self.Q_e = nmpc_params['Q_e'].value
+        self.R = nmpc_params['R'].value
+        self.ubu = nmpc_params['ubu'].value
+        self.lbu = nmpc_params['lbu'].value
+        self.horizon_time = nmpc_params['horizon_time'].value
+        self.horizon_steps = nmpc_params['horizon_steps'].value
+        self.ts = nmpc_params['ts'].value
+        self.nx = nmpc_params['nx'].value
+        self.nu = nmpc_params['nu'].value
+
+        self.mav_name = self.get_parameter('mav_name').get_parameter_value().string_value
+
+        # Check values
+        self.get_logger().info(f'Mass: {self.mass}')
+        self.get_logger().info(f'Grravity: {self.gravity}')
+        self.get_logger().info(f'Ixx: {self.ixx}')
+        self.get_logger().info(f'Iyy: {self.iyy}')
+        self.get_logger().info(f'Izz: {self.izz}')
+
+        self.get_logger().info(f'Q matrix: {self.Q}')
+        self.get_logger().info(f'Qe matrix: {self.Q_e}')
+        self.get_logger().info(f'R matrix: {self.R}')
+
+        self.get_logger().info(f'Ubu matrix: {self.ubu}')
+        self.get_logger().info(f'Lbu matrix: {self.lbu}')
+        
+        self.get_logger().info(f'Horizon Steps: {self.horizon_steps}')
+        self.get_logger().info(f'Horizon Time: {self.horizon_time}')
+        self.get_logger().info(f'Ts Time: {self.ts}')
+        self.get_logger().info(f'Name: {self.mav_name}')
+        self.get_logger().info(f'Nx: {self.nx}')
+        self.get_logger().info(f'Nu: {self.nu}')
+
+        # === Optional: Consolidate all parameters into a dict ===
+        params = {
+            'mass': self.mass,
+            'gravity': self.gravity,
+            'ixx': self.ixx,
+            'iyy': self.iyy,
+            'izz': self.izz,
+            'mav_name': self.mav_name,
+            'nmpc': {
+                'Q': self.Q,
+                'Q_e': self.Q_e,
+                'R': self.R,
+                'ubu': self.ubu,
+                'lbu': self.lbu,
+                'horizon_steps': self.horizon_steps,
+                'ts': self.ts,
+                'horizon_time': self.horizon_time,
+                'nx': self.nx,
+                'nu': self.nu,
+            }
+        }
         # Lets define internal variables
         self.g = params['gravity']
         self.mQ = params['mass']
@@ -96,21 +166,20 @@ class DQnmpcNode(Node):
         self.x_0 = np.hstack((pos_0, vel_0, quat_0, omega_0))
 
         # Define odometry subscriber for the drone
-        self.subscriber_ = self.create_subscription(Odometry, "/quadrotor/odom", self.callback_get_odometry, 10)
+        self.subscriber_ = self.create_subscription(Odometry, "odom", self.callback_get_odometry, 10)
 
         for k in range(0, self.t_aux.shape[0]):
             tic = time.time()
             while (time.time() - tic <= self.ts):
                 pass
         # Compute desired path 
-        
-        self.hd, self.hd_d, self.hd_dd, self.hd_ddd, self.hd_dddd, self.qd, self.w_d, self.w_d_d, self.f_d, self.M_d, self.t = compute_flatness_states(self.L, self.x_0[0:3], t_inital, t_trajectory, t_final, self.ts, 1.0, (self.initial + 1)*0.5)
+        self.hd, self.hd_d, self.hd_dd, self.hd_ddd, self.hd_dddd, self.qd, self.w_d, self.w_d_d, self.f_d, self.M_d, self.t = compute_flatness_states(self.L, self.x_0[0:3], t_inital, t_trajectory, t_final, self.ts, 2, (self.initial + 1)*0.5)
 
         # Define planner subscriber for the drone
         self.planner_msg = PositionCommand()
         self.planner_msg.points = [self.create_trajectory_point(i) for i in range(self.N_prediction)]
 
-        self.publisher_planner_ = self.create_publisher(PositionCommand, "/quadrotor/position_cmd", 10)
+        self.publisher_planner_ = self.create_publisher(PositionCommand, "position_cmd", 10)
 
         self.timer = self.create_timer(self.ts, self.publish_planner)  # 0.01 seconds = 100 Hz
         self.start_time = time.time()
@@ -128,7 +197,6 @@ class DQnmpcNode(Node):
         point.force = 0.0  # Example force
         point.angular_velocity = Vector3(x=0.0, y=0.0, z=0.0)
         point.angular_velocity_dot = Vector3(x=0.0, y=0.0, z=0.0)
-        point.torque = Vector3(x=0.0, y=0.0, z=0.0)
         return point
 
     def callback_get_odometry(self, msg):
@@ -201,11 +269,6 @@ class DQnmpcNode(Node):
             point.quaternion.y = self.qd[2, self.j + i]
             point.quaternion.z = self.qd[3, self.j + i]
 
-            # Torques
-            point.torque.x = self.M_d[0, self.j + 1]
-            point.torque.y = self.M_d[1, self.j + 1]
-            point.torque.z = self.M_d[2, self.j + 1]
-
             # Angular velocity
             point.angular_velocity.x = self.w_d[0, self.j + i]
             point.angular_velocity.y = self.w_d[1, self.j + i]
@@ -219,9 +282,9 @@ class DQnmpcNode(Node):
         self.publisher_planner_.publish(self.planner_msg)
         return None
 
-def main(arg, params):
+def main(arg=None):
     rclpy.init(args=arg)
-    planning_node = DQnmpcNode(params)
+    planning_node = PlannerNode()
     try:
         rclpy.spin(planning_node)  # Will run until manually interrupted
     except KeyboardInterrupt:
@@ -234,6 +297,4 @@ def main(arg, params):
     return None
 
 if __name__ == '__main__':
-    path_to_yaml = os.path.abspath(sys.argv[1])
-    params = utils.yaml_to_dict(path_to_yaml)
-    main(None, params)
+    main()

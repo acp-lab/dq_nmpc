@@ -4,7 +4,6 @@ import numpy as np
 from dq_nmpc import Quaternion
 from dq_nmpc import DualQuaternion
 from casadi import Function
-from casadi import jacobian
 from acados_template import AcadosModel
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import expm
@@ -904,7 +903,7 @@ def trajectory(t, zi, w_c):
 
     x0 = 0 * np.zeros((t.shape[0]))
     y0 = 0 * np.zeros((t.shape[0]))
-    z0 = 6 * np.ones((t.shape[0]))
+    z0 = 4 * np.ones((t.shape[0]))
 
     h0 = np.vstack((x0, y0, z0))
     r = r + h0
@@ -997,16 +996,16 @@ def compute_flatness_states(L, x, t_initial, t_trajectory, t_final, sample_time,
 
         # Elements of the matrix A
         a11 = 0.0
-        a12 = f[:, k]
+        a12 = float(f[:, k])
         a13 = 0.0
 
-        a21 = f[:, k]
+        a21 = float(f[:, k])
         a22 = 0.0
         a23 = 0.0
         
         a31 = 0.0
-        a32 = -np.dot(Yc[:, k], Zb[:, k])
-        a33 = np.linalg.norm(np.cross(Yc[:, k], Zb[:, k]))
+        a32 = float(-np.dot(Yc[:, k], Zb[:, k]))
+        a33 = float(np.linalg.norm(np.cross(Yc[:, k], Zb[:, k])))
 
         # Inverse Matrix A
         A = np.array([[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]], dtype=np.double)
@@ -1031,9 +1030,9 @@ def compute_flatness_states(L, x, t_initial, t_trajectory, t_final, sample_time,
         chi = chi_1 + chi_2 + chi_3 + chi_4 + chi_5
 
         # Compute angular accelerations of the system
-        B1 = m*np.dot(Xb[:, k], hd_pppp[:, k]) - f[:, k]*wx*wz - 2*f_p[:, k]*wy
-        B2 = -m*np.dot(Yb[:, k], hd_pppp[:, k]) -2 * f_p[:, k] * wx + f[:, k]*wy*wz
-        B3 = chi
+        B1 = float(m*np.dot(Xb[:, k], hd_pppp[:, k]) - f[:, k]*wx*wz - 2*f_p[:, k]*wy)
+        B2 = float(-m*np.dot(Yb[:, k], hd_pppp[:, k]) -2 * f_p[:, k] * wx + f[:, k]*wy*wz)
+        B3 = float(chi)
 
         B = np.array([[B1], [B2], [B3]], dtype=np.double)
 

@@ -2,20 +2,12 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-#import matplotlib.pyplot as plt
 import casadi as ca
-
-import threading
 
 # Libraries of dual-quaternions
 from dq_nmpc import dualquat_from_pose_casadi
 from dq_nmpc import dualquat_trans_casadi, dualquat_quat_casadi, rotation_casadi, rotation_inverse_casadi, dual_velocity_casadi, velocities_from_twist_casadi
-from dq_nmpc import compute_flatness_states
 from dq_nmpc import error_dual_aux_casadi
-
-from acados_template import AcadosOcpSolver
-
-from ament_index_python.packages import get_package_share_path
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
@@ -23,10 +15,9 @@ from visualization_msgs.msg import Marker
 from quadrotor_msgs.msg import TRPYCommand
 from quadrotor_msgs.msg import PositionCommand
 import time
-import os
-import sys
-from dq_nmpc import utils
 from dq_nmpc import solver
+from geometry_msgs.msg import Wrench
+from scipy.spatial.transform import Rotation as R
 
 # Function to create a dualquaternion, get quaernion and translatation and returns a dualquaternion
 dualquat_from_pose = dualquat_from_pose_casadi()
@@ -56,8 +47,91 @@ class DQnmpcNode(Node):
     def __init__(self):
         super().__init__('DQNMPC_FINAL')
         # Lets define internal variables
+        self.declare_parameter('mass', 1.0)
+        self.declare_parameter('gravity', 9.8)
+        self.declare_parameter('ixx', 0.00305587)
+        self.declare_parameter('iyy', 0.00159695)
+        self.declare_parameter('izz', 0.00159687)
+        self.declare_parameter('mav_name', 'quadrotor')
 
-        return None
+        # System gains
+        self.declare_parameter('nmpc.Q', [0.0]*14)
+        self.declare_parameter('nmpc.Q_e', [0.0]*14)
+        self.declare_parameter('nmpc.R', [0.0]*4)
+        self.declare_parameter('nmpc.horizon_steps', 0)
+        self.declare_parameter('nmpc.horizon_time', 0.0)
+        self.declare_parameter('nmpc.ts', 0.0)
+        self.declare_parameter('nmpc.ubu', [0.0]*4)
+        self.declare_parameter('nmpc.lbu', [0.0]*4)
+        self.declare_parameter('nmpc.nx', 0)
+        self.declare_parameter('nmpc.nu', 0)
+
+
+        # Access parameters
+        self.mass = self.get_parameter('mass').value
+        self.gravity = self.get_parameter('gravity').value
+        self.ixx = self.get_parameter('ixx').value
+        self.iyy = self.get_parameter('iyy').value
+        self.izz = self.get_parameter('izz').value
+
+        nmpc_params = self.get_parameters_by_prefix('nmpc')
+        self.Q = nmpc_params['Q'].value
+        self.Q_e = nmpc_params['Q_e'].value
+        self.R = nmpc_params['R'].value
+        self.ubu = nmpc_params['ubu'].value
+        self.lbu = nmpc_params['lbu'].value
+        self.horizon_time = nmpc_params['horizon_time'].value
+        self.horizon_steps = nmpc_params['horizon_steps'].value
+        self.ts = nmpc_params['ts'].value
+        self.nx = nmpc_params['nx'].value
+        self.nu = nmpc_params['nu'].value
+
+        self.mav_name = self.get_parameter('mav_name').get_parameter_value().string_value
+
+        # Check values
+        self.get_logger().info(f'Mass: {self.mass}')
+        self.get_logger().info(f'Grravity: {self.gravity}')
+        self.get_logger().info(f'Ixx: {self.ixx}')
+        self.get_logger().info(f'Iyy: {self.iyy}')
+        self.get_logger().info(f'Izz: {self.izz}')
+
+        self.get_logger().info(f'Q matrix: {self.Q}')
+        self.get_logger().info(f'Qe matrix: {self.Q_e}')
+        self.get_logger().info(f'R matrix: {self.R}')
+
+        self.get_logger().info(f'Ubu matrix: {self.ubu}')
+        self.get_logger().info(f'Lbu matrix: {self.lbu}')
+        
+        self.get_logger().info(f'Horizon Steps: {self.horizon_steps}')
+        self.get_logger().info(f'Horizon Time: {self.horizon_time}')
+        self.get_logger().info(f'Ts Time: {self.ts}')
+        self.get_logger().info(f'Name: {self.mav_name}')
+        self.get_logger().info(f'Nx: {self.nx}')
+        self.get_logger().info(f'Nu: {self.nu}')
+
+        # === Optional: Consolidate all parameters into a dict ===
+        params = {
+            'mass': self.mass,
+            'gravity': self.gravity,
+            'ixx': self.ixx,
+            'iyy': self.iyy,
+            'izz': self.izz,
+            'mav_name': self.mav_name,
+            'nmpc': {
+                'Q': self.Q,
+                'Q_e': self.Q_e,
+                'R': self.R,
+                'ubu': self.ubu,
+                'lbu': self.lbu,
+                'horizon_steps': self.horizon_steps,
+                'ts': self.ts,
+                'horizon_time': self.horizon_time,
+                'nx': self.nx,
+                'nu': self.nu,
+            }
+        }
+
+        # Values of the system
         self.g = params['gravity']
         self.mQ = params['mass']
 
@@ -67,10 +141,6 @@ class DQnmpcNode(Node):
         self.Jzz = params['izz']
         self.J = np.array([[self.Jxx, 0.0, 0.0], [0.0, self.Jyy, 0.0], [0.0, 0.0, self.Jzz]])
         self.L = [self.mQ, self.Jxx, self.Jyy, self.Jzz, self.g]
-
-        # Desired sample time  self.ts, time where we want to init over trajectory t_initial, time for the trajectory t_trajectory
-        # Time to go to the init state t_final
-        # Initial time to established a stable connection self.initial
 
         # Initial States dual set zeros
         # Position of the system
@@ -89,22 +159,14 @@ class DQnmpcNode(Node):
         self.Q = np.array(params['nmpc']['Q'])
         self.Q_e = np.array(params['nmpc']['Q_e'])
         self.R = np.array(params['nmpc']['R'])
-        print("Gain Values")
-        print(self.Q)
-        print(self.Q_e)
-        print(self.R)
 
         self.acados_ocp_solver, self.ocp = solver(params)
 
-        # Define Publisher odom from simulation
-        self.odom_msg = Odometry()
-        self.publisher_odom_ = self.create_publisher(Odometry, "odom", 10)
-
         # Define odometry subscriber for the drone
-        self.subscriber_ = self.create_subscription(Odometry, "/quadrotor/odom", self.callback_get_odometry, 10)
+        self.subscriber_ = self.create_subscription(Odometry, "odom", self.callback_get_odometry, 10)
 
         # Define planner subscriber for the drone
-        self.subscriber_planner_ = self.create_subscription(PositionCommand, "/quadrotor/position_cmd", self.callback_get_planner, 10)
+        self.subscriber_planner_ = self.create_subscription(PositionCommand, "position_cmd", self.callback_get_planner, 10)
 
         # Define odometry publisher for the desired path
         self.ref_msg = Odometry()
@@ -116,8 +178,8 @@ class DQnmpcNode(Node):
         self.publisher_ref_trajectory_ = self.create_publisher(Marker, 'desired_path', 10)
 
         # Definition of the publisher 
-        self.trpy_msg = TRPYCommand()
-        self.publisher_trpy_ = self.create_publisher(TRPYCommand, '/quadrotor/trpy_cmd', 10)
+        self.control_msg = Wrench()
+        self.publisher_control_ = self.create_publisher(Wrench, 'cmd', 10)
 
         # Definition of the prediction time in secs
         self.t_N = params['nmpc']['horizon_time']
@@ -150,7 +212,6 @@ class DQnmpcNode(Node):
         self.u_control = np.zeros((4, 1), dtype=np.double)
         self.u_control[0, 0] = self.g*self.mQ
         
-
         # Reference signals of the nmpc
         self.x_ref = np.zeros((13, self.N_prediction), dtype=np.double)
         self.u_d = np.zeros((4, self.N_prediction), dtype=np.double)
@@ -162,52 +223,10 @@ class DQnmpcNode(Node):
         self.timer = self.create_timer(self.ts, self.control_nmpc)  # 0.01 seconds = 100 Hz
         self.start_time = time.time()
 
-
-    def send_odometry(self, dqd):
-        # Function that send odometry
-        t_d = get_trans(dqd)
-        q_d = get_quat(dqd)
-
-        self.odom_msg.header.frame_id = "world"
-
-        self.odom_msg.header.stamp = self.get_clock().now().to_msg()
-
-        self.odom_msg.pose.pose.position.x = float(t_d[1, 0])
-        self.odom_msg.pose.pose.position.y = float(t_d[2, 0])
-        self.odom_msg.pose.pose.position.z = float(t_d[3, 0])
-
-        self.odom_msg.pose.pose.orientation.x = float(q_d[1, 0])
-        self.odom_msg.pose.pose.orientation.y = float(q_d[2, 0])
-        self.odom_msg.pose.pose.orientation.z = float(q_d[3, 0])
-        self.odom_msg.pose.pose.orientation.w = float(q_d[0, 0])
-
-        # Send Messag
-        self.publisher_odom_.publish(self.odom_msg)
-        return None 
-
     def callback_get_planner(self, msg):
         # Empty Vector for classical formulation
         pre_quat = np.array([1.0, 0.0, 0.0, 0.0])
         current_quat = np.zeros((4, ))
-
-        # Filter values of quaternions
-        #for k in msg.points:
-        #    current_quat = np.array([k.quaternion.w, k.quaternion.x, k.quaternion.y, k.quaternion.z])
-        #    aux_dot = np.dot(current_quat, pre_quat)
-        #    if aux_dot < 0:
-        #        k.quaternion.w = -k.quaternion.w
-        #        k.quaternion.x = -k.quaternion.x
-        #        k.quaternion.y = -k.quaternion.y
-        #        k.quaternion.z = -k.quaternion.z
-        #        current_quat = - current_quat
-        #    else:
-        #        k.quaternion.w = k.quaternion.w
-        #        k.quaternion.x = k.quaternion.x
-        #        k.quaternion.y = k.quaternion.y
-        #        k.quaternion.z = k.quaternion.z
-        #        current_quat =  current_quat
-        #    pre_quat = current_quat
-        ## Set up desired states of the stystem
         i = 0
         for k in msg.points:
             # Desired States
@@ -252,13 +271,16 @@ class DQnmpcNode(Node):
 
             # Desired Torques
             self.w_dot_ref[0:3, i] = np.array([k.angular_velocity_dot.x, k.angular_velocity_dot.y, k.angular_velocity_dot.z])
-            #self.u_d[1:4, i] = self.J @ self.w_dot_ref[0:3, i] + np.cross(self.x_ref[10:13, i], self.J@self.x_ref[10:13, i])
-            self.u_d[1:4, i] = np.array([k.torque.x, k.torque.y, k.torque.z])
+            #aux_torque = J@w_p[:, k] + np.cross(w[:, k], J@w[:, k])
+            self.u_d[1:4, i] = self.J @ self.w_dot_ref[0:3, i] + np.cross(self.x_ref[10:13, i], self.J@self.x_ref[10:13, i])
+            #self.u_d[1:4, i] = np.array([k.torque.x, k.torque.y, k.torque.z])
             i = i + 1
 
         # Send data
         self.send_marker()
+        self.send_ref()
         return None
+
     def callback_get_odometry(self, msg):
         # Empty Vector for classical formulation
         x = np.zeros((13, ))
@@ -269,9 +291,11 @@ class DQnmpcNode(Node):
         x[2] = msg.pose.pose.position.z
 
         # Get linear velocities Inertial frame
-        vx_i = msg.twist.twist.linear.x
-        vy_i = msg.twist.twist.linear.y
-        vz_i = msg.twist.twist.linear.z
+        vx_b = msg.twist.twist.linear.x
+        vy_b = msg.twist.twist.linear.y
+        vz_b = msg.twist.twist.linear.z
+
+        vb = np.array([[vx_b], [vy_b], [vz_b]])
         
         # Get angular velocity body frame
         x[10] = msg.twist.twist.angular.x
@@ -283,11 +307,16 @@ class DQnmpcNode(Node):
         x[8] = msg.pose.pose.orientation.y
         x[9] = msg.pose.pose.orientation.z
         x[6] = msg.pose.pose.orientation.w
+
+        # Rotation inertial frame
+        rotational = R.from_quat([x[7], x[8], x[9], x[6]])
+        rotational_matrix = rotational.as_matrix()
+        vx_i = rotational_matrix@vb
     
         # Put values in the vector
-        x[3] = vx_i
-        x[4] = vy_i
-        x[5] = vz_i
+        x[3] = vx_i[0, 0]
+        x[4] = vx_i[1, 0]
+        x[5] = vx_i[2, 0]
         self.x_0 = x
         
         # Compute dual quaternion
@@ -297,41 +326,21 @@ class DQnmpcNode(Node):
         # Init Dual Twist
         self.dual_twist_1 = dual_twist(self.angular_linear_1, self.dual_1)
         self.X[:, 0] = np.array(ca.vertcat(self.dual_1, self.dual_twist_1)).reshape((14, ))
-
-        # send dual quaternion message
-        self.dual_msg.header.stamp = self.get_clock().now().to_msg()
-        self.dual_msg.d_0 = float(self.dual_1[0, 0])
-        self.dual_msg.d_1 = float(self.dual_1[1, 0])
-        self.dual_msg.d_2 = float(self.dual_1[2, 0])
-        self.dual_msg.d_3 = float(self.dual_1[3, 0])
-        self.dual_msg.d_4 = float(self.dual_1[4, 0])
-        self.dual_msg.d_5 = float(self.dual_1[5, 0])
-        self.dual_msg.d_6 = float(self.dual_1[6, 0])
-        self.dual_msg.d_7 = float(self.dual_1[7, 0])
-
-        self.dual_msg.twist_0 = float(self.dual_twist_1[0, 0])
-        self.dual_msg.twist_1 = float(self.dual_twist_1[1, 0])
-        self.dual_msg.twist_2 =  float(self.dual_twist_1[2, 0])
-        self.dual_msg.twist_3 =  float(self.dual_twist_1[3, 0])
-        self.dual_msg.twist_4 =  float(self.dual_twist_1[4, 0])
-        self.dual_msg.twist_5 =  float(self.dual_twist_1[5, 0])
-
-        self.publisher_dual_.publish(self.dual_msg)
         return None
 
 
-    def send_ref(self, h, q):
+    def send_ref(self):
         self.ref_msg.header.frame_id = "world"
         self.ref_msg.header.stamp = self.get_clock().now().to_msg()
 
-        self.ref_msg.pose.pose.position.x = h[0]
-        self.ref_msg.pose.pose.position.y = h[1]
-        self.ref_msg.pose.pose.position.z = h[2]
+        self.ref_msg.pose.pose.position.x = self.x_ref[0, 0]
+        self.ref_msg.pose.pose.position.y = self.x_ref[1, 0]
+        self.ref_msg.pose.pose.position.z = self.x_ref[2, 0]
 
-        self.ref_msg.pose.pose.orientation.x = q[1]
-        self.ref_msg.pose.pose.orientation.y = q[2]
-        self.ref_msg.pose.pose.orientation.z = q[3]
-        self.ref_msg.pose.pose.orientation.w = q[0]
+        self.ref_msg.pose.pose.orientation.x = self.x_ref[7, 0]
+        self.ref_msg.pose.pose.orientation.y = self.x_ref[8, 0]
+        self.ref_msg.pose.pose.orientation.z = self.x_ref[9, 0]
+        self.ref_msg.pose.pose.orientation.w = self.x_ref[6, 0]
 
         # Send Message
         self.publisher_ref_.publish(self.ref_msg)
@@ -340,30 +349,13 @@ class DQnmpcNode(Node):
     def send_cmd(self, dqd, wd, u):
         t_d = get_trans(dqd)
         q_d = get_quat(dqd)
-
-        self.trpy_msg.header.stamp = self.get_clock().now().to_msg()
-        self.trpy_msg.header.frame_id = "world"
-        self.trpy_msg.quaternion.x = float(q_d[1, 0])
-        self.trpy_msg.quaternion.y = float(q_d[2, 0])
-        self.trpy_msg.quaternion.z = float(q_d[3, 0])
-        self.trpy_msg.quaternion.w = float(q_d[0, 0])
-
-        self.trpy_msg.angular_velocity.x = float(wd[0])
-        self.trpy_msg.angular_velocity.y = float(wd[1])
-        self.trpy_msg.angular_velocity.z = float(wd[2])
-
-        self.trpy_msg.thrust = u[0]
-
-        self.trpy_msg.kom[0] = 0.13
-        self.trpy_msg.kom[1] = 0.13
-        self.trpy_msg.kom[2] = 1.0
-
-        self.trpy_msg.kr[0] = 1.5
-        self.trpy_msg.kr[1] = 1.5
-        self.trpy_msg.kr[2] = 1.0
-        self.trpy_msg.aux.enable_motors = True
-
-        self.publisher_trpy_.publish(self.trpy_msg)
+        self.control_msg.force.x = 0.0
+        self.control_msg.force.y = 0.0
+        self.control_msg.force.z = u[0]
+        self.control_msg.torque.x = u[1]
+        self.control_msg.torque.y = u[2]
+        self.control_msg.torque.z = u[3]
+        self.publisher_control_.publish(self.control_msg)
         return None 
 
     def init_marker(self):
@@ -417,10 +409,11 @@ class DQnmpcNode(Node):
         self.acados_ocp_solver.solve()
         self.X_control = self.acados_ocp_solver.get(1, "x")
         self.u_control = self.acados_ocp_solver.get(0, "u")
+        self.u_aux = np.array(self.u_control)
         self.send_cmd(self.X_control[0:8], self.X_control[8:14], self.u_control)
+        #self.get_logger().info(f"Sent control: Thrust={self.u_control[0]:.3f}")
         return None 
         
-
 def main(arg=None):
     rclpy.init(args=arg)
     planning_node = DQnmpcNode()
