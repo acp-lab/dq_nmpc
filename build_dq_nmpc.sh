@@ -2,11 +2,11 @@
 echo ""
 echo "Let's build the NMPC!"
 echo "enter your platform_type"
-echo "default: eagle"
-echo 'options: eagle'
+echo "default: mujoco"
+echo 'options: mujoco'
 echo ""
 read platform_type
-platform_type=${platform_type:-race}
+platform_type=${platform_type:-mujoco}
 echo 'thank you!'
 echo ""
 

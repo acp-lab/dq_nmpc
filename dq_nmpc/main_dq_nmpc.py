@@ -22,12 +22,11 @@ from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
 from quadrotor_msgs.msg import TRPYCommand
 from quadrotor_msgs.msg import PositionCommand
-from mujoco_msgs.msg import Dual
 import time
 import os
 import sys
-import utils
-from dq_controller import solver
+from dq_nmpc import utils
+from dq_nmpc import solver
 
 # Function to create a dualquaternion, get quaernion and translatation and returns a dualquaternion
 dualquat_from_pose = dualquat_from_pose_casadi()
@@ -54,9 +53,11 @@ inverse_rot = rotation_inverse_casadi()
 error_dual_f = error_dual_aux_casadi()
 
 class DQnmpcNode(Node):
-    def __init__(self, params):
+    def __init__(self):
         super().__init__('DQNMPC_FINAL')
         # Lets define internal variables
+
+        return None
         self.g = params['gravity']
         self.mQ = params['mass']
 
@@ -98,9 +99,6 @@ class DQnmpcNode(Node):
         # Define Publisher odom from simulation
         self.odom_msg = Odometry()
         self.publisher_odom_ = self.create_publisher(Odometry, "odom", 10)
-
-        self.dual_msg = Dual()
-        self.publisher_dual_ = self.create_publisher(Dual, "dual_python", 10)
 
         # Define odometry subscriber for the drone
         self.subscriber_ = self.create_subscription(Odometry, "/quadrotor/odom", self.callback_get_odometry, 10)
@@ -423,9 +421,9 @@ class DQnmpcNode(Node):
         return None 
         
 
-def main(arg, params):
+def main(arg=None):
     rclpy.init(args=arg)
-    planning_node = DQnmpcNode(params)
+    planning_node = DQnmpcNode()
     try:
         rclpy.spin(planning_node)  # Will run until manually interrupted
     except KeyboardInterrupt:
@@ -438,6 +436,4 @@ def main(arg, params):
     return None
 
 if __name__ == '__main__':
-    path_to_yaml = os.path.abspath(sys.argv[1])
-    params = utils.yaml_to_dict(path_to_yaml)
-    main(None, params)
+    main()

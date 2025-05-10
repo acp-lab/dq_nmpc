@@ -22,7 +22,7 @@
     mav_name: "quadrotor"
     platform_type: "eagle"
     gravity: 9.80665
-    mass: 1.19
+    mass: 1.0
     # mass: 1.176   # race7, race8
     frame_dx: 0.078
     frame_dy: 0.0985
@@ -32,9 +32,9 @@
     drag_coefficient: 0.0
     kf: 2.47e-08
     km: 2.68e-10
-    ixx: 0.00304475
-    iyy: 0.00454981
-    izz: 0.00281995
+    ixx: 0.00305587
+    iyy: 0.00159695
+    izz: 0.00159687
 
     # nmpc_control_params
     nmpc:

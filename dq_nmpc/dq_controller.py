@@ -2,8 +2,8 @@ import os
 import sys
 import numpy as np
 from acados_template import AcadosOcp, AcadosOcpSolver
-import utils
-from ode_acados import export_model
+from dq_nmpc import utils
+from dq_nmpc import export_model
 from casadi import Function, MX, vertcat, sin, cos, fabs, DM
 def solver(params):
     # get dynamical model
