@@ -68,7 +68,7 @@ def generate_launch_description():
         namespace=name,
         output='screen',
         parameters=[
-        control_config,  # 👈 this includes the YAML file
+        control_config, 
         {
             'world_frame_id': world_frame_id,
             'body_frame_id': name,
@@ -85,7 +85,7 @@ def generate_launch_description():
         namespace=name,
         output='screen',
         parameters=[
-        control_config,  # 👈 this includes the YAML file
+        control_config, 
         {
             'world_frame_id': world_frame_id,
             'body_frame_id': name
