@@ -109,7 +109,7 @@ Quadrotor Simulator in MuJoCo: [https://github.com/acp-lab/quadrotor\_simulator\
 To launch the simulation, planner, and controller together, run:
 
 ```bash
-ros2 launch dq_nmpc dq_mpc.launch.py
+ros2 launch dq_nmpc controller_dq.launch.py
 ```
 
 ## Available ROS 2 Topics

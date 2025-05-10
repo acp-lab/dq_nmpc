@@ -14,7 +14,7 @@ def generate_launch_description():
         DeclareLaunchArgument('world_frame_id', default_value='world'),
         DeclareLaunchArgument('rate_odom', default_value='200.0'),
         DeclareLaunchArgument('rate_imu', default_value='500.0'),
-        DeclareLaunchArgument('flag_build', default_value='False'),
+        DeclareLaunchArgument('flag_build', default_value='True'),
     ]
 
     # Get values from arguments
