@@ -154,7 +154,7 @@ class PlannerNode(Node):
 
         # Initial States dual set zeros
         # Position of the system
-        pos_0 = np.array([0.0, 0.0, 0.0], dtype=np.double)
+        pos_0 = np.array([0.0, 0.0, 1.0], dtype=np.double)
         # Linear velocity of the sytem respect to the inertial frame
         vel_0 = np.array([0.0, 0.0, 0.0], dtype=np.double)
         # Angular velocity respect to the Body frame

@@ -5,7 +5,7 @@ from acados_template import AcadosOcp, AcadosOcpSolver
 from dq_nmpc import utils
 from dq_nmpc import export_model
 from casadi import Function, MX, vertcat, sin, cos, fabs, DM
-def solver(params):
+def solver(params, flag = True):
     # get dynamical model
     model, get_trans, get_quat, constraint, error_lie_2, dual_error, ln, Ad, conjugate, rotation = export_model(params)
 
@@ -87,27 +87,18 @@ def solver(params):
     R_u[2, 2] = R[2]
     R_u[3, 3] = R[3]
     
-    #  Aux Dual unit
-    #unit = MX.zeros(8, 1)
-    #unit[0, 0] = 1.0
     # Compute errrors
     error_dual = dual_error(ref_dual, dual)
-    #ln_error = unit - error_dual
     ln_error = ln(error_dual)
     error_w = w_b - ref_w_b
     error_v = v_b - ref_v_i
     error_u = ref_control - u 
 
-    # Lyapunov Function
-    #primary_error = error_dual[1:4]
-    #dual_error = error_dual[5:8]
 
     # Cost Function
     ocp.model.cost_expr_ext_cost = ln_error.T@Q_dual@ln_error + error_u.T@R_u@error_u + error_v.T@Q_v@error_v + error_w.T@Q_w@error_w
     ocp.model.cost_expr_ext_cost_e = ln_error.T@Q_dual@ln_error + error_v.T@Q_v@error_v + error_w.T@Q_w@error_w
 
-    #ocp.model.cost_expr_ext_cost = (1/2)*(primary_error.T@Q_primal@primary_error) + (1/2)*Q_primal_scalar*(1-error_dual[0]**2) + 2*dual_error.T@Q_dual@dual_error + 2*Q_dual_scalar*(error_dual[4]**2)+ error_u.T@R_u@error_u + error_v.T@Q_v@error_v + error_w.T@Q_w@error_w
-    #ocp.model.cost_expr_ext_cost_e = (1/2)*(primary_error.T@Q_primal@primary_error) + (1/2)*Q_primal_scalar*(1-error_dual[0]**2) + 2*dual_error.T@Q_dual@dual_error + 2*Q_dual_scalar*(error_dual[4]**2) + error_v.T@Q_v@error_v + error_w.T@Q_w@error_w
     # Init condition
     ref_params = np.array([1.0, 0.0, 0.0, 0.0,    # Primary part dualquaternion
                                      0.0, 0.0, 0.0, 0.0,    # Dual part dualquaternion
@@ -128,26 +119,6 @@ def solver(params):
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
     ocp.constraints.x0 = np.array(ref_params[:nx])
 
-    ## Nonlinear constraints
-    #ocp.model.con_h_expr = constraint.expr
-    #nsbx = 0
-    #nh = constraint.expr.shape[0]
-    #nsh = nh
-    #ns = nsh + nsbx
-#
-    #### Gains over the Horizon for the nonlinear constraint
-    #ocp.cost.zl = 100*np.ones((ns, ))
-    #ocp.cost.Zl = 100*np.ones((ns, ))
-    #ocp.cost.Zu = 100*np.ones((ns, ))
-    #ocp.cost.zu = 100*np.ones((ns, ))
-#
-    #### Norm of a quaternion should be one
-    #ocp.constraints.lh = np.array([constraint.min])
-    #ocp.constraints.uh = np.array([constraint.max])
-    #ocp.constraints.lsh = np.zeros(nsh)
-    #ocp.constraints.ush = np.zeros(nsh)
-    #ocp.constraints.idxsh = np.array(range(nsh))
-#
     # Set options
     ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'  # Efficient QP solver
     ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # Fast real-time SQP
@@ -185,14 +156,7 @@ def solver(params):
     ocp.solver_options.sim_method_num_steps = 1  # Number of integration steps
     ocp.solver_options.sim_method_newton_iter = 2  # Newton iterations for convergence
 
-    print("New Set Up")
-
-
-    #acados_solver = AcadosOcpSolver(ocp, json_file='acados_ocp_mpc.json', build = True, generate = True)
-    #acados_solver = AcadosOcpSolver(ocp, json_file='acados_ocp_mpc.json', build = False, generate = False)
-    #acados_solver = AcadosOcpSolver(ocp, json_file='acados_ocp_mpc.json', build = False, generate = False)
-    acados_solver = AcadosOcpSolver(ocp, json_file='acados_ocp_mpc.json', build = True, generate = True)
-    print('MPC Built')
+    acados_solver = AcadosOcpSolver(ocp, json_file='acados_ocp_mpc.json', build = flag, generate = flag)
     return acados_solver, ocp
 
 if __name__ == "__main__":

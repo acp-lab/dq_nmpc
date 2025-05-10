@@ -65,6 +65,9 @@ class DQnmpcNode(Node):
         self.declare_parameter('nmpc.lbu', [0.0]*4)
         self.declare_parameter('nmpc.nx', 0)
         self.declare_parameter('nmpc.nu', 0)
+        
+        self.declare_parameter('flag_build', True)
+        self.flag_build = self.get_parameter('flag_build').value
 
 
         # Access parameters
@@ -160,7 +163,7 @@ class DQnmpcNode(Node):
         self.Q_e = np.array(params['nmpc']['Q_e'])
         self.R = np.array(params['nmpc']['R'])
 
-        self.acados_ocp_solver, self.ocp = solver(params)
+        self.acados_ocp_solver, self.ocp = solver(params, self.flag_build)
 
         # Define odometry subscriber for the drone
         self.subscriber_ = self.create_subscription(Odometry, "odom", self.callback_get_odometry, 10)

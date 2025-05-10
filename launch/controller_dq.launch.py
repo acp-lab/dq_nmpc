@@ -14,7 +14,7 @@ def generate_launch_description():
         DeclareLaunchArgument('world_frame_id', default_value='world'),
         DeclareLaunchArgument('rate_odom', default_value='200.0'),
         DeclareLaunchArgument('rate_imu', default_value='500.0'),
-        DeclareLaunchArgument('use_dq_control', default_value='false'),
+        DeclareLaunchArgument('flag_build', default_value='False'),
     ]
 
     # Get values from arguments
@@ -23,7 +23,7 @@ def generate_launch_description():
     world_frame_id = LaunchConfiguration('world_frame_id')
     rate_odom = LaunchConfiguration('rate_odom')
     rate_imu = LaunchConfiguration('rate_imu')
-    use_dq_control = LaunchConfiguration('use_dq_control')
+    flag_build = LaunchConfiguration('flag_build')
 
     # Construct the path to the XML model using substitutions
     model_path = PathJoinSubstitution([
@@ -71,7 +71,8 @@ def generate_launch_description():
         control_config,  # 👈 this includes the YAML file
         {
             'world_frame_id': world_frame_id,
-            'body_frame_id': name
+            'body_frame_id': name,
+            'flag_build': flag_build
         }
     ]
     )
