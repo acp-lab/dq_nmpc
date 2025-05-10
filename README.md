@@ -1,7 +1,9 @@
 # Dual-Quaternion Model Predictive Control for Quadrotor
 
 This repository provides an implementation of a Model Predictive Control (MPC) strategy based on Dual Quaternions (DQ) for quadrotor systems.
-![Dual Quaternion MPC Animation](images/dq_nmpc.gif)
+
+![Dual Quaternion MPC Animation](images/dq_code.gif)
+
 The controller leverages the Acados optimization framework for fast and efficient solving of optimal control problems, and the MuJoCo physics engine to simulate realistic quadrotor dynamics in a 3D environment. Dual quaternions are used to represent pose in SE(3) compactly and without singularities, making the approach well-suited for aerial robotics applications.
 
 ## Dependencies
