@@ -12,7 +12,6 @@ from dq_nmpc import error_dual_aux_casadi
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
-from quadrotor_msgs.msg import TRPYCommand
 from quadrotor_msgs.msg import PositionCommand
 import time
 from dq_nmpc import solver

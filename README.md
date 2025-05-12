@@ -74,7 +74,7 @@ This project depends on custom ROS 2 message types. Clone the message package in
 
 ```bash
 cd ~/ros2_ws/src  
-git clone https://github.com/acp-lab/quadrotor_msgs.git
+git https://github.com/acp-lab/quadrotor_msgs
 ```
 
 Build the workspace:
@@ -123,6 +123,7 @@ ros2 launch dq_nmpc controller_dq.launch.py
 | Topic Name      | Message Type              | Description                                  |
 | --------------- | ------------------------- | -------------------------------------------- |
 | /quadrotor/cmd  | geometry\_msgs/msg/Wrench | Control input computed by the DQ-MPC         |
+| /quadrotor/position_cmd  | quadrotor\_msgs/msg/PositionCommand | Desired States of the System         |
 | /quadrotor/odom | nav\_msgs/msg/Odometry    | Full quadrotor state estimate from simulator |
 
 ```
