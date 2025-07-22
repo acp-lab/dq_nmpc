@@ -9,7 +9,6 @@ from scipy.spatial.transform import Rotation as R
 from scipy.linalg import expm
 from scipy.linalg import block_diag
 from scipy import sparse
-import osqp
 
 # Sample time symbolic
 ts = ca.MX.sym("ts", 1, 1)
