@@ -508,8 +508,8 @@ def dual_aceleraction_casadi(dual, omega, u, L):
     p = p[1:4, 0]
 
     # Compute unforced part
-    a = ca.cross(-J_1@w, J@w)
-    F_r = a
+    #a = ca.cross(-J_1@w, J@w)
+    F_r = - J_1 @ ca.cross(w, J @ w)
     F_d = ca.cross(v, w) - g*(f_rotation_inverse(q, e3))
 
     # Compute forced part
