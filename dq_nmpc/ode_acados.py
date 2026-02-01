@@ -532,6 +532,7 @@ def export_model(params):
 
     # Model section parameters
     model = AcadosModel()
+    print("The name of the model is, ", params['mav_name'])
     model.name = params['mav_name']
     model.z = []
 
