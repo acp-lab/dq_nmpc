@@ -1,7 +1,7 @@
 {
-    "acados_include_path": "/home/eagle1/ws/acp_ws/src/acados/include",
-    "acados_lib_path": "/home/eagle1/ws/acp_ws/src/acados/lib",
-    "code_export_directory": "/home/eagle1/ws/acp_ws/src/dq_nmpc/c_generated_code",
+    "acados_include_path": "/home/eagle10/ws/acp_ws/src/acados/include",
+    "acados_lib_path": "/home/eagle10/ws/acp_ws/src/acados/lib",
+    "code_export_directory": "/home/eagle10/ws/acp_ws/src/dq_nmpc/c_generated_code",
     "constraints": {
         "C": [],
         "C_e": [],
@@ -182,7 +182,7 @@
         "zu_e": []
     },
     "cython_include_dirs": [
-        "/home/eagle1/.local/lib/python3.10/site-packages/numpy/core/include",
+        "/usr/lib/python3/dist-packages/numpy/core/include",
         "/usr/include/python3.10"
     ],
     "dims": {
