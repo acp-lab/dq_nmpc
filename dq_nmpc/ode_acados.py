@@ -532,7 +532,7 @@ def export_model(params):
 
     # Model section parameters
     model = AcadosModel()
-    model.name = params['mav_name']
+    model.name = "dq_" + params['mav_name']
     model.z = []
 
     # States of the system
