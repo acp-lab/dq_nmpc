@@ -1,0 +1,12 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0e3d4d7..4f2b839 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -337,6 +337,7 @@ target_include_directories(hpipm
+ 		$<INSTALL_INTERFACE:${HPIPM_HEADERS_INSTALLATION_DIRECTORY}>)
+ 
+ target_link_libraries(hpipm blasfeo)
++target_link_libraries(hpipm PRIVATE m)
+ 
+ install(TARGETS hpipm EXPORT hpipmConfig
+ 	LIBRARY DESTINATION lib

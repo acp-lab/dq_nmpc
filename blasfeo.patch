@@ -1,0 +1,22 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 010d1dee..37341211 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1139,7 +1139,7 @@ endif()
+ # TODO WR
+ 
+ if(${EXT_DEP})
+-	
++
+ 	list(APPEND BLASFEO_SRC ${AUX_EXT_DEP_SRC})
+ 
+ endif()
+@@ -1187,7 +1187,7 @@ target_include_directories(blasfeo
+ 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+ 		$<INSTALL_INTERFACE:${BLASFEO_HEADERS_INSTALLATION_DIRECTORY}>)
+ #		$<INSTALL_INTERFACE:include/blasfeo/include>)
+-
++target_link_libraries(blasfeo PRIVATE m)
+ 
+ install(TARGETS blasfeo EXPORT blasfeoConfig
+ 	LIBRARY DESTINATION lib
