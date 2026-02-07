@@ -269,7 +269,7 @@
             "nontrivial_f_LO": 1,
             "purely_linear": 0
         },
-        "name": "quadrotor",
+        "name": "dq_quadrotor",
         "nu_original": null,
         "p": "vertcat(ref_params, cost_params)",
         "t": [],
@@ -278,7 +278,7 @@
         "xdot": "vertcat(qw_1dot, qx_1dot, qy_1dot, qz_1dot, dw_1dot, dx_1dot, dy_1dot, dz_1dot, wx_1dot, wy_1dot, wz_1dot, vx_1dot, vy_1dot, vz_1dot)",
         "z": "0x0"
     },
-    "name": "quadrotor",
+    "name": "dq_quadrotor",
     "parameter_values": [
         1.0,
         0.0,

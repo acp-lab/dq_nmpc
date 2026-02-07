@@ -10,20 +10,20 @@ platform_type=${platform_type:-race}
 echo 'thank you!'
 echo ""
 
-python3 dq_nmpc/dq_controller.py /home/fer/payload_transportation_ws/src/acp-autonomy-stack/config/eagle/default/dq_control.yaml
+python3 dq_nmpc/dq_controller.py $COLCON_WS_DIR/src/acp-autonomy-stack/config/eagle/default/dq_control.yaml
 
 # Creating the folder where we are going to paste the files
-mkdir /home/fer/payload_transportation_ws/install/dq_cpp/
-mkdir /home/fer/payload_transportation_ws/dq_cpp/lib
+mkdir $COLCON_WS_DIR/install/dq_cpp/
+mkdir $COLCON_WS_DIR/install/dq_cpp/lib/
 
-cp c_generated_code/libacados_ocp_solver_quadrotor.so /home/fer/payload_transportation_ws/install/dq_cpp/lib
+cp c_generated_code/libacados_ocp_solver_dq_quadrotor.so $COLCON_WS_DIR/install/dq_cpp/lib/
 
-echo "Deleting old Files"
-rm -rf /home/fer/payload_transportation_ws/src/dq_cpp/c_generated_code
-mv -f c_generated_code /home/fer/payload_transportation_ws/src/dq_cpp/
-
-
-cd /home/fer/payload_transportation_ws
-source install/setup.bash
+#echo "Deleting old Files"
+rm -rf $COLCON_WS_DIR/src/dq_cpp/c_generated_code
+mv -f c_generated_code $COLCON_WS_DIR/src/dq_cpp/
+#
+#
+cd $COLCON_WS_DIR
+source $COLCON_WS_DIR/install/setup.bash
 colcon build --symlink-install --packages-select dq_cpp
-source install/setup.bash
+source $COLCON_WS_DIR/install/setup.bash
