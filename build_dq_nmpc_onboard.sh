@@ -1,29 +1,57 @@
 #!/bin/bash
+
+set -e
+
+# Get absolute path of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Workspace root
+WS_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
 echo ""
+echo "Workspace detected:"
+echo "$WS_DIR"
+echo ""
+
 echo "Let's build the NMPC!"
-echo "enter your platform_type"
+echo "Enter your platform_type"
 echo "default: race"
-echo 'options: race race2 race_S voxl2 raxl2 iris eagle'
+echo "options: race race2 race_S voxl2 raxl2 iris eagle"
 echo ""
+
 read platform_type
 platform_type=${platform_type:-race}
-echo 'thank you!'
+
+echo "Thank you!"
 echo ""
 
-python3 dq_nmpc/dq_controller.py $COLCON_WS_DIR/src/acp-autonomy-stack/config/eagle/default/dq_control.yaml
+CONFIG_FILE="$WS_DIR/src/acp-autonomy-stack/config/eagle/default/dq_control.yaml"
 
-# Creating the folder where we are going to paste the files
-mkdir $COLCON_WS_DIR/install/dq_cpp/
-mkdir $COLCON_WS_DIR/install/dq_cpp/lib/
+# Run code generation
+python3 "$SCRIPT_DIR/dq_nmpc/dq_controller.py" "$CONFIG_FILE"
 
-cp c_generated_code/libacados_ocp_solver_dq_quadrotor.so $COLCON_WS_DIR/install/dq_cpp/lib/
+# Create install directories
+mkdir -p "$WS_DIR/install/dq_cpp/lib"
 
-#echo "Deleting old Files"
-rm -rf $COLCON_WS_DIR/src/dq_cpp/c_generated_code
-mv -f c_generated_code $COLCON_WS_DIR/src/dq_cpp/
+# Copy generated shared library
+cp c_generated_code/libacados_ocp_solver_dq_quadrotor.so \
+   "$WS_DIR/install/dq_cpp/lib/"
 
+# Remove old generated code
+rm -rf "$WS_DIR/src/dq_cpp/c_generated_code"
 
-cd $COLCON_WS_DIR
-source $COLCON_WS_DIR/install/setup.bash
+# Move new generated code
+mv -f c_generated_code "$WS_DIR/src/dq_cpp/"
+
+# Build package
+cd "$WS_DIR"
+
+source install/setup.bash
+
 colcon build --symlink-install --packages-select dq_cpp
-source $COLCON_WS_DIR/install/setup.bash
+
+source install/setup.bash
+
+echo ""
+echo "NMPC build complete!"
+echo ""
