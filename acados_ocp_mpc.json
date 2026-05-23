@@ -1,18 +1,18 @@
 {
     "code_gen_opts": {
-        "acados_include_path": "/home/fer/acados/include",
-        "acados_lib_path": "/home/fer/acados/lib",
+        "acados_include_path": "//home/fer/acados/include",
+        "acados_lib_path": "//home/fer/acados/lib",
         "acados_link_libs": {
             "clarabel": "",
             "daqp": "",
             "hpmpc": "",
             "ooqp": "",
-            "openmp": "-fopenmp",
+            "openmp": "",
             "osqp": "",
             "qpdunes": "",
-            "qpoases": ""
+            "qpoases": "-lqpOASES_e"
         },
-        "acados_version": "a312651ab",
+        "acados_version": "d9d0ba2e8",
         "code_export_directory": "/home/fer/payload_transportation_ws/src/dq_nmpc/c_generated_code",
         "cython_include_dirs": [
             "/home/fer/.local/lib/python3.10/site-packages/numpy/core/include",
@@ -292,7 +292,7 @@
         "dq_quadrotor_cost/dq_quadrotor_cost_ext_cost_e_fun_jac_hess.c",
         "dq_quadrotor_cost/dq_quadrotor_cost_ext_cost_e_fun_jac.c"
     ],
-    "hash": "6147cd377ffd93c38eba5296dc583bd2",
+    "hash": "2753e6cbe4206b3b9a2e6d3262d2593f",
     "model": {
         "con_h_expr": [],
         "con_h_expr_0": [],
