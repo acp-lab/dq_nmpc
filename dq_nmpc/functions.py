@@ -1,7 +1,5 @@
 import numpy as np
 import casadi as ca
-import numpy as np
-import matplotlib.pyplot as plt
 from dq_nmpc import Quaternion
 from dq_nmpc import DualQuaternion
 from casadi import Function
