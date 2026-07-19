@@ -30,6 +30,16 @@
     min_rpm: 1080.0
     max_rpm: 24000.0
     drag_coefficient: 0.0
+    drag:
+      enabled: true
+      smooth_eps: 0.05
+      kx1: 0.15280471
+      kx2: 0.04258070
+      ky1: 0.20250798
+      ky2: 0.03149589
+      kz1: 0.24466636
+      kz2: 0.06842695
+      kh: 0.00206314
     kf: 2.47e-08
     km: 2.68e-10
     ixx: 0.00305587
