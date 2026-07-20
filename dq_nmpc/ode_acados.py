@@ -484,7 +484,7 @@ def error_dual_aux_casadi():
     f_error_dual = Function('f_error_dual', [qd, q], [q_error])
     return f_error_dual
 
-def dual_aceleraction_casadi(dual, omega, u, L):
+def dual_aceleraction_casadi(dual, omega, u, L, drag_params=None):
     # Split Control Actions
     force = u[0, 0]
     torques = u[1:4, 0]
@@ -516,10 +516,38 @@ def dual_aceleraction_casadi(dual, omega, u, L):
     U_r = J_1@torques
     U_d = (force/m)@e3
 
-    T_r = F_r + U_r
-    T_d = F_d + U_d
-    T = ca.vertcat(T_r, T_d)
+    if drag_params is None:
+        drag_params = {}
+    drag_enabled = bool(drag_params.get('enabled', False))
+    if drag_enabled:
+        kx1 = drag_params.get('kx1', 0.0)
+        kx2 = drag_params.get('kx2', 0.0)
+        ky1 = drag_params.get('ky1', 0.0)
+        ky2 = drag_params.get('ky2', 0.0)
+        kz1 = drag_params.get('kz1', 0.0)
+        kz2 = drag_params.get('kz2', 0.0)
+        kh = drag_params.get('kh', 0.0)
+        drag_eps = drag_params.get('smooth_eps', 0.05)
 
+        vx = v[0, 0]
+        vy = v[1, 0]
+        vz = v[2, 0]
+
+        sx = ca.sqrt(vx*vx + drag_eps*drag_eps)
+        sy = ca.sqrt(vy*vy + drag_eps*drag_eps)
+        sz = ca.sqrt(vz*vz + drag_eps*drag_eps)
+
+        f_drag_body = ca.vertcat(
+            -kx1*vx - kx2*vx*sx,
+            -ky1*vy - ky2*vy*sy,
+            -kz1*vz - kz2*vz*sz + kh*(vx*vx + vy*vy),
+        )
+    else:
+        f_drag_body = ca.DM.zeros(3, 1)
+
+    T_r = F_r + U_r
+    T_d = F_d + U_d + f_drag_body
+    T = ca.vertcat(T_r, T_d)
     return T
 
 def export_model(params):
@@ -529,6 +557,23 @@ def export_model(params):
     # Parameters Model
     L = [params['mass'], params['ixx'], params['iyy'], params['izz'], params['gravity']]
     print(L)
+    drag_params = params.get('drag', {'enabled': False})
+
+    if bool(drag_params.get('enabled', False)):
+        print("[dq_nmpc] Drag model enabled during acados code generation.")
+        print(
+            "[dq_nmpc] Drag params: "
+            f"smooth_eps={drag_params.get('smooth_eps', 0.05)}, "
+            f"kx1={drag_params.get('kx1', 0.0)}, "
+            f"kx2={drag_params.get('kx2', 0.0)}, "
+            f"ky1={drag_params.get('ky1', 0.0)}, "
+            f"ky2={drag_params.get('ky2', 0.0)}, "
+            f"kz1={drag_params.get('kz1', 0.0)}, "
+            f"kz2={drag_params.get('kz2', 0.0)}, "
+            f"kh={drag_params.get('kh', 0.0)}"
+        )
+    else:
+        print("[dq_nmpc] Drag model disabled during acados code generation.")
 
     # Model section parameters
     model = AcadosModel()
@@ -598,7 +643,7 @@ def export_model(params):
     
     # System Dynamics
     dualdot = quatdot_simple(dualquat_1, twist_1)
-    twistdot = dual_aceleraction_casadi(dualquat_1, twist_1, u, L)
+    twistdot = dual_aceleraction_casadi(dualquat_1, twist_1, u, L, drag_params)
     f_expl = ca.vertcat(dualdot, twistdot)
     f_impl = X_dot - f_expl
 
