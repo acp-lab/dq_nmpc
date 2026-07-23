@@ -520,28 +520,27 @@ def dual_aceleraction_casadi(dual, omega, u, L, drag_params=None):
         drag_params = {}
     drag_enabled = bool(drag_params.get('enabled', False))
     if drag_enabled:
-        kx1 = drag_params.get('kx1', 0.0)
-        kx2 = drag_params.get('kx2', 0.0)
-        ky1 = drag_params.get('ky1', 0.0)
-        ky2 = drag_params.get('ky2', 0.0)
-        kz1 = drag_params.get('kz1', 0.0)
-        kz2 = drag_params.get('kz2', 0.0)
-        kh = drag_params.get('kh', 0.0)
-        drag_eps = drag_params.get('smooth_eps', 0.05)
-
         vx = v[0, 0]
         vy = v[1, 0]
         vz = v[2, 0]
+        drag_model = drag_params.get("model", "linear_kh")
+        drag_model = str(drag_model).lower()
 
-        sx = ca.sqrt(vx*vx + drag_eps*drag_eps)
-        sy = ca.sqrt(vy*vy + drag_eps*drag_eps)
-        sz = ca.sqrt(vz*vz + drag_eps*drag_eps)
-
-        f_drag_body = ca.vertcat(
-            -kx1*vx - kx2*vx*sx,
-            -ky1*vy - ky2*vy*sy,
-            -kz1*vz - kz2*vz*sz + kh*(vx*vx + vy*vy),
-        )
+        if drag_model in ("linearkh", "linear_kh"):
+            kdx = drag_params.get('kdx', drag_params.get('kx1', 0.0))
+            kdy = drag_params.get('kdy', drag_params.get('ky1', 0.0))
+            kdz = drag_params.get('kdz', drag_params.get('kz1', 0.0))
+            kh = drag_params.get('kh', 0.0)
+            f_drag_body = ca.vertcat(
+                -kdx * vx,
+                -kdy * vy,
+                -kdz * vz + kh * (vx * vx + vy * vy),
+            )
+        else:
+            raise ValueError(
+                f"[dq_nmpc] Unsupported drag model '{drag_model}'. "
+                "This solver is configured only for linearkh/linear_kh."
+            )
     else:
         f_drag_body = ca.DM.zeros(3, 1)
 
@@ -558,20 +557,24 @@ def export_model(params):
     # Parameters Model
     L = [params['mass'], params['ixx'], params['iyy'], params['izz'], params['gravity']]
     drag_params = params.get('drag', {'enabled': False})
+    drag_model = str(drag_params.get('model', 'linear_kh')).lower()
+    if drag_params.get('enabled', False) and drag_model not in ['linearkh', 'linear_kh']:
+        raise ValueError(
+            f"[dq_nmpc] Unsupported drag model '{drag_model}'. "
+            "This solver is configured only for linearkh/linear_kh."
+        )
     print(L)
     if bool(drag_params.get('enabled', False)):
         print("[dq_nmpc] Drag model enabled during acados code generation.")
-        print(
-            "[dq_nmpc] Drag params: "
-            f"smooth_eps={drag_params.get('smooth_eps', 0.05)}, "
-            f"kx1={drag_params.get('kx1', 0.0)}, "
-            f"kx2={drag_params.get('kx2', 0.0)}, "
-            f"ky1={drag_params.get('ky1', 0.0)}, "
-            f"ky2={drag_params.get('ky2', 0.0)}, "
-            f"kz1={drag_params.get('kz1', 0.0)}, "
-            f"kz2={drag_params.get('kz2', 0.0)}, "
-            f"kh={drag_params.get('kh', 0.0)}"
-        )
+        if drag_model in ('linearkh', 'linear_kh'):
+            print(
+                "[dq_nmpc] Drag params (linear+kh): "
+                f"kdx={drag_params.get('kdx', drag_params.get('kx1', 0.0))}, "
+                f"kdy={drag_params.get('kdy', drag_params.get('ky1', 0.0))}, "
+                f"kdz={drag_params.get('kdz', drag_params.get('kz1', 0.0))}, "
+                f"kh={drag_params.get('kh', 0.0)}"
+            )
+        print(f"[dq_nmpc] Using drag model '{drag_model}'.")
     else:
         print("[dq_nmpc] Drag model disabled during acados code generation.")
 

@@ -32,14 +32,12 @@
     drag_coefficient: 0.0
     drag:
       enabled: true
-      smooth_eps: 0.05
-      kx1: 0.09972472
-      kx2: 0.04754464
-      ky1: 0.19184392
-      ky2: 0.02791475
-      kz1: 0.27090602
-      kz2: 0.06727693
-      kh: 0.00103221
+      model: linear_kh
+      # Linear+kh model parameters
+      kdx: 0.39375051
+      kdy: 0.28507240
+      kdz: 0.54896180
+      kh: 0.0
     kf: 2.47e-08
     km: 2.68e-10
     ixx: 0.00305587
