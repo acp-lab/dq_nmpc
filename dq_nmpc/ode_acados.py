@@ -534,8 +534,9 @@ def dual_aceleraction_casadi(dual, omega, u, L, drag_params=None):
             f_drag_body = ca.vertcat(
                 -kdx * vx,
                 -kdy * vy,
-                -kdz * vz + kh * (vx * vx + vy * vy),
+                -kdz * vz
             )
+            print("Here we are using Drag Model")
         else:
             raise ValueError(
                 f"[dq_nmpc] Unsupported drag model '{drag_model}'. "
