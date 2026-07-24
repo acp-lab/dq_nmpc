@@ -1,5 +1,5 @@
 {
-    "code_gen_opts": {
+    "code_gen_options": {
         "acados_include_path": "//home/fer/acados/include",
         "acados_lib_path": "//home/fer/acados/lib",
         "acados_link_libs": {
@@ -12,15 +12,32 @@
             "qpdunes": "",
             "qpoases": "-lqpOASES_e"
         },
-        "acados_version": "8e1a6f856",
-        "code_export_directory": "/home/fer/PHD_RESEARCH/payload_transportation_ws_kilted/src/dq_nmpc/c_generated_code",
+        "acados_version": "1ed24fbb7",
+        "casadi_code_gen_options": {
+            "casadi_int": "int",
+            "casadi_real": "double",
+            "force_canonical": false,
+            "mex": false
+        },
+        "code_export_directory": "/home/fer/payload_transportation_ws/src/dq_nmpc/c_generated_code",
         "cython_include_dirs": [
             "/home/fer/.local/lib/python3.12/site-packages/numpy/_core/include",
             "/usr/include/python3.12"
         ],
+        "ext_fun_compile_flags": "-Ofast -march=native",
+        "ext_fun_expand_constr": false,
+        "ext_fun_expand_cost": false,
+        "ext_fun_expand_dyn": false,
+        "ext_fun_expand_precompute": false,
+        "generate_hess": false,
         "json_file": "acados_ocp_mpc.json",
+        "model_external_shared_lib_dir": null,
+        "model_external_shared_lib_name": null,
         "os": "unix",
-        "shared_lib_ext": ".so"
+        "sens_forw_p": false,
+        "shared_lib_ext": ".so",
+        "with_solution_sens_wrt_params": false,
+        "with_value_sens_wrt_params": false
     },
     "constraints": {
         "C": [],
@@ -292,7 +309,7 @@
         "dq_quadrotor_cost/dq_quadrotor_cost_ext_cost_e_fun_jac_hess.c",
         "dq_quadrotor_cost/dq_quadrotor_cost_ext_cost_e_fun_jac.c"
     ],
-    "hash": "c5a522aed24bbf8bae67bf4819155b06",
+    "hash": "ab9935f3f731331d39a55b9e9a802d31",
     "model": {
         "con_h_expr": [],
         "con_h_expr_0": [],
