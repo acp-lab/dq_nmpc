@@ -21,8 +21,8 @@
         },
         "code_export_directory": "/home/fer/payload_transportation_ws/src/dq_nmpc/c_generated_code",
         "cython_include_dirs": [
-            "/home/fer/.local/lib/python3.10/site-packages/numpy/core/include",
-            "/usr/include/python3.10"
+            "/home/fer/.local/lib/python3.12/site-packages/numpy/_core/include",
+            "/usr/include/python3.12"
         ],
         "ext_fun_compile_flags": "-Ofast -march=native",
         "ext_fun_expand_constr": false,

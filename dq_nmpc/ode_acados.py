@@ -548,7 +548,6 @@ def dual_aceleraction_casadi(dual, omega, u, L, drag_params=None):
     T_r = F_r + U_r
     T_d = F_d + U_d + f_drag_body
     T = ca.vertcat(T_r, T_d)
-
     return T
 
 def export_model(params):
