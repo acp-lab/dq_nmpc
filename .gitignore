@@ -1,1 +1,3 @@
 acados_ocp_mpc.json
+dq_nmpc/__pycache__/
+dq_nmpc/type/__pycache__/
