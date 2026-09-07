@@ -29,7 +29,10 @@ def solver(params, flag=True):
     # initialize ocp
     ocp = AcadosOcp()
     ocp.model = model
-    ocp.dims.N = params["nmpc"]["horizon_steps"]
+    ocp.name = model.name
+    ocp.code_gen_options.code_export_directory = "c_generated_code"
+    ocp.code_gen_options.json_file = "acados_ocp_mpc.json"
+    ocp.solver_options.N_horizon = params["nmpc"]["horizon_steps"]
     ocp.dims.nx = nx
     ocp.dims.nbx = nx
     ocp.dims.nbu = nu
@@ -183,7 +186,7 @@ def solver(params, flag=True):
     ocp.solver_options.qp_solver_ric_alg = 1  # Use Riccati-based algorithm
 
     ## Compilation flags for external functions (optional for performance)
-    ocp.solver_options.ext_fun_compile_flags = "-Ofast -march=native"
+    ocp.code_gen_options.ext_fun_compile_flags = "-Ofast -march=native"
     ocp.solver_options.hpipm_mode = "SPEED"  # Prioritize speed in QP solver
 
     # Parallelization
@@ -199,9 +202,7 @@ def solver(params, flag=True):
     ocp.solver_options.sim_method_num_steps = 1  # Number of integration steps
     ocp.solver_options.sim_method_newton_iter = 2  # Newton iterations for convergence
 
-    acados_solver = AcadosOcpSolver(
-        ocp, json_file="acados_ocp_mpc.json", build=flag, generate=flag
-    )
+    acados_solver = AcadosOcpSolver(ocp, build=flag, generate=flag)
     return acados_solver, ocp
 
 
