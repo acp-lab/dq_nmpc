@@ -118,6 +118,18 @@ To launch the simulation, planner, and controller together, run:
 ros2 launch dq_nmpc controller_dq.launch.py
 ```
 
+## Optional Model Parameters
+
+The NMPC model can include body frame aerodynamic drag and a tilted thrust axis. Set the parameters below next to `mass` in `dq_control.yaml`, as floats (`1.0`, not `1`).
+
+| Parameter          | Default           | Description                                                                      |
+| ------------------ | ----------------- | -------------------------------------------------------------------------------- |
+| `drag_linear`      | `[0.0, 0.0, 0.0]` | Linear drag per body axis in 1/s: acceleration `-drag_linear * v`                |
+| `drag_quadratic`   | `[0.0, 0.0, 0.0]` | Quadratic drag per body axis in 1/m: acceleration `-drag_quadratic * abs(v) * v` |
+| `thrust_axis_body` | `[0.0, 0.0, 1.0]` | Direction of the collective thrust in the body frame (normalized)                |
+
+Here `v` is the body frame linear velocity and the products are per axis.
+
 ## Available ROS 2 Topics
 
 | Topic Name      | Message Type              | Description                                  |

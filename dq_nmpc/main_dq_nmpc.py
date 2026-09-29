@@ -51,6 +51,9 @@ class DQnmpcNode(Node):
         self.declare_parameter('ixx', 0.00305587)
         self.declare_parameter('iyy', 0.00159695)
         self.declare_parameter('izz', 0.00159687)
+        self.declare_parameter('drag_linear', [0.0, 0.0, 0.0])
+        self.declare_parameter('drag_quadratic', [0.0, 0.0, 0.0])
+        self.declare_parameter('thrust_axis_body', [0.0, 0.0, 1.0])
         self.declare_parameter('mav_name', 'quadrotor')
 
         # System gains
@@ -75,6 +78,9 @@ class DQnmpcNode(Node):
         self.ixx = self.get_parameter('ixx').value
         self.iyy = self.get_parameter('iyy').value
         self.izz = self.get_parameter('izz').value
+        self.drag_linear = self.get_parameter('drag_linear').value
+        self.drag_quadratic = self.get_parameter('drag_quadratic').value
+        self.thrust_axis_body = self.get_parameter('thrust_axis_body').value
 
         nmpc_params = self.get_parameters_by_prefix('nmpc')
         self.Q = nmpc_params['Q'].value
@@ -96,6 +102,9 @@ class DQnmpcNode(Node):
         self.get_logger().info(f'Ixx: {self.ixx}')
         self.get_logger().info(f'Iyy: {self.iyy}')
         self.get_logger().info(f'Izz: {self.izz}')
+        self.get_logger().info(f'Drag linear: {self.drag_linear}')
+        self.get_logger().info(f'Drag quadratic: {self.drag_quadratic}')
+        self.get_logger().info(f'Thrust axis body: {self.thrust_axis_body}')
 
         self.get_logger().info(f'Q matrix: {self.Q}')
         self.get_logger().info(f'Qe matrix: {self.Q_e}')
@@ -118,6 +127,9 @@ class DQnmpcNode(Node):
             'ixx': self.ixx,
             'iyy': self.iyy,
             'izz': self.izz,
+            'drag_linear': self.drag_linear,
+            'drag_quadratic': self.drag_quadratic,
+            'thrust_axis_body': self.thrust_axis_body,
             'mav_name': self.mav_name,
             'nmpc': {
                 'Q': self.Q,
