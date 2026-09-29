@@ -485,7 +485,7 @@ def error_dual_aux_casadi():
     f_error_dual = Function('f_error_dual', [qd, q], [q_error])
     return f_error_dual
 
-def dual_aceleraction_casadi(dual, omega, u, L):
+def dual_aceleraction_casadi(dual, omega, u, L, params=None):
     # Split Control Actions
     force = u[0, 0]
     torques = u[1:4, 0]
@@ -501,6 +501,14 @@ def dual_aceleraction_casadi(dual, omega, u, L):
     g = L[4]
     m = L[0]
 
+    # Optional drag coefficients (per unit mass) and thrust axis, body frame
+    if params is None:
+        params = {}
+    drag_linear = ca.DM(params.get('drag_linear', [0.0, 0.0, 0.0]))
+    drag_quadratic = ca.DM(params.get('drag_quadratic', [0.0, 0.0, 0.0]))
+    thrust_axis = ca.DM(params.get('thrust_axis_body', [0.0, 0.0, 1.0]))
+    thrust_axis = thrust_axis/ca.norm_2(thrust_axis)
+
     # Compute linear and angular velocity from twist velocity
     w = omega[0:3, 0]
     v = omega[3:6, 0]
@@ -511,11 +519,12 @@ def dual_aceleraction_casadi(dual, omega, u, L):
     # Compute unforced part
     #a = ca.cross(-J_1@w, J@w)
     F_r = - J_1 @ ca.cross(w, J @ w)
-    F_d = ca.cross(v, w) - g*(f_rotation_inverse(q, e3))
+    drag = (drag_linear + drag_quadratic*ca.fabs(v))*v
+    F_d = ca.cross(v, w) - g*(f_rotation_inverse(q, e3)) - drag
 
     # Compute forced part
     U_r = J_1@torques
-    U_d = (force/m)@e3
+    U_d = (force/m)@thrust_axis
 
     T_r = F_r + U_r
     T_d = F_d + U_d
@@ -598,7 +607,7 @@ def export_model(params):
     
     # System Dynamics
     dualdot = quatdot_simple(dualquat_1, twist_1)
-    twistdot = dual_aceleraction_casadi(dualquat_1, twist_1, u, L)
+    twistdot = dual_aceleraction_casadi(dualquat_1, twist_1, u, L, params)
     f_expl = ca.vertcat(dualdot, twistdot)
     f_impl = X_dot - f_expl
 

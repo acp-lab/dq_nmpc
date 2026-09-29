@@ -35,6 +35,10 @@
     ixx: 0.00305587
     iyy: 0.00159695
     izz: 0.00159687
+    # optional body frame drag and thrust axis of the nmpc model
+    drag_linear: [0.0, 0.0, 0.0]
+    drag_quadratic: [0.0, 0.0, 0.0]
+    thrust_axis_body: [0.0, 0.0, 1.0]
 
     # nmpc_control_params
     nmpc:
