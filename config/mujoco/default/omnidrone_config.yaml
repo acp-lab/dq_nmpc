@@ -1,0 +1,22 @@
+mav_name: "omni"          # used for model.name -> "<mav_name>_omnidrone"
+
+# Thrust limits per rotor [N] (used in OmniDroneModel.__init__) -- PLACEHOLDERS, set to your motors
+f_min: 0.0
+f_max: 15.0
+
+num_rotors: 4              # Np
+
+mass: 3.5                  # [kg]
+gravity: 9.81              # [m/s^2]
+
+inertia:                   # [kg m^2]
+  Ixx: 0.063
+  Iyy: 0.062
+  Izz: 0.095
+
+t_servo: 0.048             # servo time constant [s]
+
+arm_theta_deg: [45, 135, 225, 315]   # direction of each arm in body frame [deg]
+rotor_dist: 0.27           # motor location along arm axis [m]
+spin_dir: [1, -1, 1, -1]   # spin direction of each propeller (b)
+kq_kt: 0.0165              # reaction torque per newton of thrust [m]

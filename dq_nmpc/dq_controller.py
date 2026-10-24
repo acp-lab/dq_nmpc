@@ -5,6 +5,7 @@ from acados_template import AcadosOcp, AcadosOcpSolver
 from dq_nmpc import utils
 from dq_nmpc import export_model
 from casadi import Function, MX, vertcat, sin, cos, fabs, DM
+
 def solver(params, flag = True):
     # get dynamical model
     model, get_trans, get_quat, constraint, error_lie_2, dual_error, ln, Ad, conjugate, rotation = export_model(params)

@@ -26,7 +26,8 @@ setup(
     entry_points={
         'console_scripts': [
             "dq_nmpc = dq_nmpc.main_dq_nmpc:main",
-            "planner = dq_nmpc.main_planner:main"
+            "planner = dq_nmpc.main_planner:main",
+            "hover_nmpc = dq_nmpc.main_hover_nmpc:main"
         ],
     },
 )

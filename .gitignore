@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+c_generated_code*/
+acados_ocp*.json
