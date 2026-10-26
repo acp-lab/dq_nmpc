@@ -15,6 +15,7 @@ import casadi as ca
 from acados_template import AcadosOcp, AcadosOcpSolver                                   
 from omnidrone_model import export_omnidrone_model, quat_mul
 from casadi import Function, MX, vertcat, sin, cos, fabs, DM   
+import utils
 
 
  
@@ -80,6 +81,31 @@ def solver(params, flag = True):
 
     # ---------------- STEP 4: parameters (disturbance force/torque, reference quaternion) ----------------
     ocp.parameter_values = np.r_[np.zeros(6), 1.0, 0.0, 0.0, 0.0]
+
+    # ---------------- STEP 5: constraints ----------------
+    lim = nmpc['limits']
+    ocp.constraints.x0 = np.r_[np.zeros(6), 1.0, 0.0, 0.0, 0.0, np.zeros(3), np.zeros(Np)]   # placeholder start
+
+    # (9e) input bounds
+    ocp.constraints.lbu = np.r_[[lim['f_min']] * Np, [-lim['alpha_max']] * Np]
+    ocp.constraints.ubu = np.r_[[lim['f_max']] * Np, [lim['alpha_max']] * Np]
+    ocp.constraints.idxbu = np.arange(nu)
+    # (9d) velocity limits: v_x,y,z (states 3-5) and omega_x,y,z (states 10-12)
+    ocp.constraints.lbx = np.r_[[-lim['v_max']] * 3, [-lim['omega_max']] * 3]
+    ocp.constraints.ubx = np.r_[[lim['v_max']] * 3, [lim['omega_max']] * 3]
+    ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
+ 
+    # ---------------- STEP 6: solver options ----------------
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+    ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+    ocp.solver_options.integrator_type = 'ERK'
+    ocp.solver_options.sim_method_num_stages = 4
+    ocp.solver_options.sim_method_num_steps = 1
+ 
+    # ---------------- STEP 7: build ----------------
+    ocp_solver = AcadosOcpSolver(ocp, json_file='omnidrone_ocp.json', generate=flag, build=flag)
+    return ocp_solver, ocp
 
     
     

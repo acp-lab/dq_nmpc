@@ -34,7 +34,7 @@ def R_Z(a):
 
 # --- MAIN MODEL FUNCTION --- 
 
-def export_model(params: dict) -> AcadosModel:
+def export_omnidrone_model(params: dict) -> AcadosModel:
     """params: dict loaded from omnidrone_params.yaml"""
  
     model = AcadosModel()
@@ -117,8 +117,9 @@ def export_model(params: dict) -> AcadosModel:
  
  
 if __name__ == "__main__":
-    with open("omnidrone_params.yaml") as fh:
+    import yaml                                                  # FIX: was missing
+    with open("/home/cwalczak/ws_ros2/src/dq_nmpc/config/mujoco/default/omnidrone_config.yaml") as fh:
         params = yaml.safe_load(fh)
-    model = export_model(params)
+    model = export_omnidrone_model(params)                       # FIX: was export_model(...)
     print(model.x.shape[0], model.u.shape[0], model.p.shape[0])   # 17 8 10
  
